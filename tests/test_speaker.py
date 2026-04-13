@@ -1,3 +1,4 @@
+import time
 from speaker import split_sentences, detect_voice, Speaker
 
 
@@ -53,9 +54,6 @@ def test_mixed_text_uses_tingting():
 
 def test_numbers_and_symbols_use_samantha():
     assert detect_voice("123 !@#") == "Samantha"
-
-
-import time
 
 
 def test_speaker_calls_on_done():
