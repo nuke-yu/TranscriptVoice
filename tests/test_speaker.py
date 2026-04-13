@@ -36,3 +36,23 @@ def test_empty_string():
 
 def test_no_delimiters():
     assert split_sentences("Hello world") == ["Hello world"]
+
+
+from speaker import detect_voice
+
+
+def test_chinese_text_uses_tingting():
+    assert detect_voice("你好世界") == "Tingting"
+
+
+def test_english_text_uses_samantha():
+    assert detect_voice("Hello world") == "Samantha"
+
+
+def test_mixed_text_uses_tingting():
+    # If any CJK chars present, use Chinese voice
+    assert detect_voice("Hello 你好") == "Tingting"
+
+
+def test_numbers_and_symbols_use_samantha():
+    assert detect_voice("123 !@#") == "Samantha"
