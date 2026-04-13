@@ -4,9 +4,6 @@ TTS engine: splits text into sentences and reads each via macOS `say`.
 """
 
 import re
-import subprocess
-import threading
-from typing import Callable
 
 
 def split_sentences(text: str) -> list[str]:
