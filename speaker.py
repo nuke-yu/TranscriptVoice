@@ -32,9 +32,11 @@ class Speaker:
         self.on_done = on_done
         self._process: subprocess.Popen | None = None
         self._stopped = False
+        self._lock = threading.Lock()
 
     def start(self, text: str):
         """Split text into sentences and read each one via `say`."""
+        self.stop()  # cancel any prior playback before starting new
         self._stopped = False
         sentences = split_sentences(text)
         if not sentences:
@@ -51,11 +53,14 @@ class Speaker:
             if self._stopped:
                 return
             voice = detect_voice(sentence)
-            self._process = subprocess.Popen(
-                ["say", "-v", voice, sentence],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            with self._lock:
+                if self._stopped:
+                    return
+                self._process = subprocess.Popen(
+                    ["say", "-v", voice, sentence],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             self._process.wait()
             if self._stopped:
                 return
@@ -67,6 +72,8 @@ class Speaker:
     def stop(self):
         """Kill current `say` process and cancel remaining sentences."""
         self._stopped = True
-        if self._process and self._process.poll() is None:
-            self._process.kill()
+        with self._lock:
+            proc = self._process
             self._process = None
+        if proc and proc.poll() is None:
+            proc.kill()
