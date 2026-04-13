@@ -1,4 +1,4 @@
-from speaker import split_sentences
+from speaker import split_sentences, detect_voice
 
 
 def test_splits_on_chinese_period():
@@ -36,9 +36,6 @@ def test_empty_string():
 
 def test_no_delimiters():
     assert split_sentences("Hello world") == ["Hello world"]
-
-
-from speaker import detect_voice
 
 
 def test_chinese_text_uses_tingting():
