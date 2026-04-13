@@ -1,4 +1,4 @@
-from speaker import split_sentences, detect_voice
+from speaker import split_sentences, detect_voice, Speaker
 
 
 def test_splits_on_chinese_period():
@@ -53,3 +53,33 @@ def test_mixed_text_uses_tingting():
 
 def test_numbers_and_symbols_use_samantha():
     assert detect_voice("123 !@#") == "Samantha"
+
+
+import time
+
+
+def test_speaker_calls_on_done():
+    done = []
+    s = Speaker(on_done=lambda: done.append(True))
+    s.start("Hi.")
+    time.sleep(3)
+    assert done == [True]
+
+
+def test_speaker_calls_on_progress():
+    progress = []
+    s = Speaker(on_progress=lambda cur, tot: progress.append((cur, tot)))
+    s.start("Hi. Bye.")
+    time.sleep(5)
+    assert len(progress) == 2
+    assert progress[-1] == (2, 2)
+
+
+def test_speaker_stop_before_done():
+    done = []
+    s = Speaker(on_done=lambda: done.append(True))
+    s.start("Hello. World. Goodbye. See you.")
+    time.sleep(1)
+    s.stop()
+    time.sleep(1)
+    assert done == []  # on_done not called when stopped early
