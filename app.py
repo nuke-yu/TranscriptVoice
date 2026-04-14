@@ -13,7 +13,6 @@ from AppKit import (
     NSBackingStoreBuffered, NSBezelStyleRounded, NSTextAlignmentRight,
     NSWindowLevel,
 )
-from Foundation import NSMakeRange
 
 from speaker import Speaker
 
@@ -46,7 +45,6 @@ class AppDelegate(NSObject):
             on_progress=self._on_progress,
             on_done=self._on_done,
         )
-        self._total_sentences = 0
         self._build_window()
         self._window.makeKeyAndOrderFront_(None)
         NSApp.activateIgnoringOtherApps_(True)
@@ -74,12 +72,12 @@ class AppDelegate(NSObject):
         root.addSubview_(scroll)
 
         # Placeholder label (shown when text view is empty)
-        self._placeholder = _label(
+        placeholder = _label(
             "Paste your text here...\n\n支持中英文，自动识别语言。",
             size=14, color=NSColor.placeholderTextColor()
         )
-        self._placeholder.setFrame_(NSMakeRect(20, 200, 360, 120))
-        root.addSubview_(self._placeholder)
+        placeholder.setFrame_(NSMakeRect(20, 200, 360, 120))
+        root.addSubview_(placeholder)
 
         # Progress track (background)
         track = NSView.alloc().initWithFrame_(NSMakeRect(14, 78, 392, 4))
@@ -123,14 +121,12 @@ class AppDelegate(NSObject):
         text = self._text_view.textStorage().string()
         if not text.strip():
             return
-        from speaker import split_sentences
-        self._total_sentences = len(split_sentences(text))
-        self._set_state("reading")
+        self.applyState_("reading")
         self._speaker.start(text)
 
     def onStop_(self, sender):
         self._speaker.stop()
-        self._set_state("idle")
+        self.applyState_("idle")
 
     # ── Callbacks (from background thread) ───────────────────────────────
 
