@@ -6,12 +6,13 @@ Native macOS window: text area, progress bar, Play/Stop buttons.
 import objc
 from AppKit import (
     NSObject, NSApplication, NSApp,
-    NSWindow, NSButton, NSTextField, NSScrollView, NSTextView, NSView,
+    NSWindow, NSButton, NSTextField, NSScrollView, NSTextView,
+    NSProgressIndicator,
     NSColor, NSFont, NSMakeRect,
     NSWindowStyleMaskTitled, NSWindowStyleMaskClosable,
     NSWindowStyleMaskMiniaturizable, NSWindowStyleMaskResizable,
     NSBackingStoreBuffered, NSBezelStyleRounded, NSTextAlignmentRight,
-    NSWindowLevel,
+    NSFloatingWindowLevel,
 )
 
 from speaker import Speaker
@@ -53,11 +54,11 @@ class AppDelegate(NSObject):
         style = (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
                  NSWindowStyleMaskMiniaturizable | NSWindowStyleMaskResizable)
         self._window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
-            NSMakeRect(0, 0, 420, 380), style, NSBackingStoreBuffered, False
+            NSMakeRect(100, 100, 420, 380), style, NSBackingStoreBuffered, False
         )
         self._window.setTitle_("🔊 TranscriptVoice")
         self._window.center()
-        self._window.setLevel_(NSWindowLevel.floating)
+        self._window.setLevel_(NSFloatingWindowLevel)
 
         root = self._window.contentView()
 
@@ -65,32 +66,20 @@ class AppDelegate(NSObject):
         scroll = NSScrollView.alloc().initWithFrame_(NSMakeRect(14, 88, 392, 240))
         scroll.setHasVerticalScroller_(True)
         scroll.setBorderType_(1)
-        self._text_view = NSTextView.alloc().initWithFrame_(NSMakeRect(0, 0, 392, 240))
+        self._text_view = NSTextView.alloc().initWithFrame_(
+            NSMakeRect(0, 0, 392, 240))
         self._text_view.setFont_(NSFont.systemFontOfSize_(14))
-        self._text_view.textContainer().setWidthTracksTextView_(True)
         scroll.setDocumentView_(self._text_view)
         root.addSubview_(scroll)
 
-        # Placeholder label (shown when text view is empty)
-        placeholder = _label(
-            "Paste your text here...\n\n支持中英文，自动识别语言。",
-            size=14, color=NSColor.placeholderTextColor()
-        )
-        placeholder.setFrame_(NSMakeRect(20, 200, 360, 120))
-        root.addSubview_(placeholder)
-
-        # Progress track (background)
-        track = NSView.alloc().initWithFrame_(NSMakeRect(14, 78, 392, 4))
-        track.setWantsLayer_(True)
-        track.layer().setBackgroundColor_(NSColor.separatorColor().CGColor())
-        track.layer().setCornerRadius_(2)
-        root.addSubview_(track)
-
-        # Progress fill
-        self._progress = NSView.alloc().initWithFrame_(NSMakeRect(14, 78, 0, 4))
-        self._progress.setWantsLayer_(True)
-        self._progress.layer().setBackgroundColor_(NSColor.systemBlueColor().CGColor())
-        self._progress.layer().setCornerRadius_(2)
+        # Progress bar (system built-in)
+        self._progress = NSProgressIndicator.alloc().initWithFrame_(
+            NSMakeRect(14, 78, 392, 8))
+        self._progress.setStyle_(1)           # bar style
+        self._progress.setIndeterminate_(False)
+        self._progress.setMinValue_(0.0)
+        self._progress.setMaxValue_(1.0)
+        self._progress.setDoubleValue_(0.0)
         root.addSubview_(self._progress)
 
         # Buttons
@@ -115,7 +104,13 @@ class AppDelegate(NSObject):
         sig.setAlignment_(NSTextAlignmentRight)
         root.addSubview_(sig)
 
+
     # ── Actions ──────────────────────────────────────────────────────────
+
+    def applicationShouldHandleReopen_hasVisibleWindows_(self, app, hasVisibleWindows):
+        if not hasVisibleWindows:
+            self._window.makeKeyAndOrderFront_(None)
+        return True
 
     def onPlay_(self, sender):
         text = self._text_view.textStorage().string()
@@ -145,7 +140,7 @@ class AppDelegate(NSObject):
     def applyProgress_(self, args):
         current, total = args
         frac = current / total if total > 0 else 0
-        self._progress.setFrame_(NSMakeRect(14, 78, int(392 * frac), 4))
+        self._progress.setDoubleValue_(frac)
 
     def applyDone_(self, _):
         self._set_state("done")
@@ -163,14 +158,14 @@ class AppDelegate(NSObject):
             self._play_btn.setEnabled_(False)
             self._stop_btn.setEnabled_(True)
             self._status.setStringValue_("Reading...")
-            self._progress.setFrame_(NSMakeRect(14, 78, 0, 4))
+            self._progress.setDoubleValue_(0.0)
         elif state == "idle":
             self._play_btn.setEnabled_(True)
             self._stop_btn.setEnabled_(False)
             self._status.setStringValue_("Idle")
-            self._progress.setFrame_(NSMakeRect(14, 78, 0, 4))
+            self._progress.setDoubleValue_(0.0)
         elif state == "done":
             self._play_btn.setEnabled_(True)
             self._stop_btn.setEnabled_(False)
             self._status.setStringValue_("Done")
-            self._progress.setFrame_(NSMakeRect(14, 78, 392, 4))
+            self._progress.setDoubleValue_(1.0)
